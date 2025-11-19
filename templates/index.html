@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Deepfake Detection</title>
+<style>
+  /* Modern CSS Reset */
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #e2e8f0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    line-height: 1.6;
+  }
+  
+  .container {
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(10px);
+    max-width: 500px;
+    width: 100%;
+    padding: 35px 30px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .header {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+  
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  
+  .subtitle {
+    color: #94a3b8;
+    font-size: 15px;
+  }
+  
+  form {
+    display: grid;
+    grid-gap: 22px;
+  }
+  
+  .form-group {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  label {
+    font-weight: 600;
+    color: #cbd5e1;
+    margin-bottom: 8px;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+  }
+  
+  label::before {
+    content: "";
+    display: inline-block;
+    height: 4px;
+    width: 4px;
+    border-radius: 50%;
+    background: #3b82f6;
+    margin-right: 8px;
+  }
+  
+  input[type="email"],
+  input[type="number"],
+  input[type="text"],
+  select,
+  input[type="file"] {
+    width: 100%;
+    padding: 14px 16px;
+    background: rgba(30, 41, 59, 0.6);
+    border: 1.8px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    font-size: 15px;
+    color: #e2e8f0;
+    transition: all 0.25s ease;
+  }
+  
+  input::placeholder,
+  select:invalid {
+    color: #94a3b8;
+  }
+  
+  input[type="email"]:focus,
+  input[type="number"]:focus,
+  input[type="text"]:focus,
+  select:focus {
+    border-color: #3b82f6;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  }
+  
+  .file-input-container {
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1.8px dashed rgba(255, 255, 255, 0.2);
+    padding: 14px;
+    text-align: center;
+    transition: all 0.25s ease;
+    background: rgba(30, 41, 59, 0.4);
+  }
+  
+  .file-input-container:hover {
+    border-color: #3b82f6;
+    background: rgba(30, 41, 59, 0.6);
+  }
+  
+  .file-input-container input[type="file"] {
+    position: absolute;
+    left: 0;
+    top: 0;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+  }
+  
+  .file-input-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #94a3b8;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  
+  .file-input-label svg {
+    margin-bottom: 8px;
+    fill: #3b82f6;
+  }
+  
+  input[type="submit"] {
+    background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+    color: white;
+    font-weight: 600;
+    padding: 16px 0;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.25s ease;
+    margin-top: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  input[type="submit"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  }
+  
+  /* Image preview */
+  #preview {
+    display: none;
+    margin-top: 15px;
+    max-width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .preview-container {
+    text-align: center;
+  }
+  
+  /* Responsive */
+  @media (max-width: 520px) {
+    body {
+      padding: 15px;
+    }
+    
+    .container {
+      padding: 25px 20px;
+    }
+    
+    h1 {
+      font-size: 24px;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Upload Image for Deepfake Analysis</h1>
+    <p class="subtitle">Verify authenticity with our advanced detection technology</p>
+  </div>
+  
+  <form action="/analyze" method="post" enctype="multipart/form-data" novalidate>
+    <div class="form-group">
+      <label for="email">Email</label>
+      <input id="email" type="email" name="email" required placeholder="your.email@example.com" />
+    </div>
+
+    <div class="form-group">
+      <label for="age">Age</label>
+      <input id="age" type="number" name="age" min="1" max="120" required placeholder="e.g., 25" />
+    </div>
+
+    <div class="form-group">
+      <label for="gender">Gender</label>
+      <select id="gender" name="gender" required>
+        <option value="" disabled selected>Select your gender</option>
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="occupation">Occupation</label>
+      <input id="occupation" type="text" name="occupation" required placeholder="Your occupation" />
+    </div>
+
+    <div class="form-group">
+      <label for="image">Select Image</label>
+      <div class="file-input-container">
+        <input id="image" type="file" name="image" accept="image/*" required />
+        <label for="image" class="file-input-label">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+            <path d="M19.5 14.5v-2.5h-2v2.5h-2.5v2h2.5v2.5h2v-2.5h2.5v-2h-2.5zm-6.712 2.5h-5.788v-10h11v5.5h2v-7.5h-15v14h8.5v-2zm-.788-8h-7v-2h7v2zm3 4h-10v-2h10v2zm-10-4v2h10v-2h-10z"/>
+          </svg>
+          Click to upload or drag and drop
+        </label>
+      </div>
+      <div class="preview-container">
+        <img id="preview" alt="Image preview" />
+      </div>
+    </div>
+
+    <input type="submit" value="Analyze Image" />
+  </form>
+</div>
+
+<script>
+  // Image preview script
+  const imageInput = document.getElementById('image');
+  const previewImg = document.getElementById('preview');
+
+  imageInput.addEventListener('change', () => {
+    const file = imageInput.files[0];
+    if (file) {
+      previewImg.style.display = 'block';
+      previewImg.src = URL.createObjectURL(file);
+    } else {
+      previewImg.style.display = 'none';
+      previewImg.src = '';
+    }
+  });
+  
+  // Add drag and drop functionality
+  const fileInputContainer = document.querySelector('.file-input-container');
+  
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    fileInputContainer.addEventListener(eventName, preventDefaults, false);
+  });
+  
+  function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  
+  ['dragenter', 'dragover'].forEach(eventName => {
+    fileInputContainer.addEventListener(eventName, highlight, false);
+  });
+  
+  ['dragleave', 'drop'].forEach(eventName => {
+    fileInputContainer.addEventListener(eventName, unhighlight, false);
+  });
+  
+  function highlight() {
+    fileInputContainer.style.borderColor = '#3b82f6';
+    fileInputContainer.style.background = 'rgba(30, 41, 59, 0.8)';
+  }
+  
+  function unhighlight() {
+    fileInputContainer.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+    fileInputContainer.style.background = 'rgba(30, 41, 59, 0.4)';
+  }
+  
+  fileInputContainer.addEventListener('drop', handleDrop, false);
+  
+  function handleDrop(e) {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    imageInput.files = files;
+    
+    // Trigger the change event manually
+    const event = new Event('change');
+    imageInput.dispatchEvent(event);
+  }
+</script>
+</body>
+</html>

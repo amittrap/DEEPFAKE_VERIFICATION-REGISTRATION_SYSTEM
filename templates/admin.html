@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Admin Dashboard</title>
+</head>
+<body>
+    <h1>Welcome, {{ username }}!</h1>
+    <p><a href="{{ url_for('admin.logout') }}">Logout</a></p>
+
+    <h2>Uploaded Images</h2>
+    <table border="1" cellpadding="6">
+        <tr>
+            <th>User Email</th>
+            <th>Age</th>
+            <th>Gender</th>
+            <th>Occupation</th>
+            <th>Image</th>
+            <th>Prediction</th>
+            <th>Confidence</th>
+            <th>Hash</th>
+            <th>Timestamp</th>
+        </tr>
+        {% for user in users %}
+            {% for image in user.images %}
+                <tr>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.age }}</td>
+                    <td>{{ user.gender }}</td>
+                    <td>{{ user.occupation }}</td>
+                    <td>
+                        <img src="{{ url_for('static', filename='images/' ~ image.image_filename) }}"
+                             alt="Uploaded Image" width="120">
+                    </td>
+                    <td>
+                        {% if image.label == "real" %}
+                            <span style="color:green;">Real</span>
+                        {% else %}
+                            <span style="color:red;">Fake</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ "%.2f"|format(image.confidence * 100) }}%</td>
+                    <td>{{ image.image_hash }}</td>
+                    <td>{{ image.timestamp }}</td>
+                </tr>
+            {% endfor %}
+        {% endfor %}
+    </table>
+</body>
+</html>
