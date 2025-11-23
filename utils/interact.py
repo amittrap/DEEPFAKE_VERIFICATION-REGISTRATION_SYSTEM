@@ -5,7 +5,7 @@ from pathlib import Path
 from web3 import Web3
 from dotenv import load_dotenv
 
-# Load variables from .env (for local dev)
+# Load variables from .env
 load_dotenv()
 
 # --- Load env variables ---
@@ -45,8 +45,8 @@ contract = w3.eth.contract(
 
 # --- Helper functions ---
 
-from web3.exceptions import TransactionNotFound
 
+from web3.exceptions import TransactionNotFound
 
 def store_result(content_hash_bytes32: bytes, label: str, confidence: float):
     """
@@ -61,7 +61,7 @@ def store_result(content_hash_bytes32: bytes, label: str, confidence: float):
 
     account = w3.eth.account.from_key(PRIVATE_KEY)
 
-    # Use 'pending' so we include in-flight txs and avoid nonce clashes
+    # ✅ Use 'pending' so we include in-flight txs and avoid nonce clashes
     nonce = w3.eth.get_transaction_count(account.address, 'pending')
 
     # Scale confidence to 0–10000 as contract expects
@@ -69,7 +69,7 @@ def store_result(content_hash_bytes32: bytes, label: str, confidence: float):
     if conf_scaled > 10000:
         conf_scaled = 10000
 
-    # Take suggested gas price and bump it a bit to avoid 'underpriced' errors
+    # ✅ Take suggested gas price and bump it a bit to avoid 'underpriced' errors
     base_gas_price = w3.eth.gas_price
     gas_price = int(base_gas_price * 1.2)  # +20%
 
@@ -92,7 +92,6 @@ def store_result(content_hash_bytes32: bytes, label: str, confidence: float):
     receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
 
     return receipt
-
 
 def get_result(content_hash_bytes32: bytes) -> dict | None:
     """
