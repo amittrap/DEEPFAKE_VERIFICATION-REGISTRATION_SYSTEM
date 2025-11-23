@@ -1,6 +1,10 @@
+# globals.py
 import os
 from tensorflow.keras.models import load_model
 
-# Load the model once, globally
-model_path = os.path.join('model', 'Xception_deepfake_model.keras')
-model = load_model(model_path)
+# Build an absolute path so it works in Linux containers
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "model", "Xception_deepfake_model.keras")
+
+# Load the model globally once
+model = load_model(MODEL_PATH)

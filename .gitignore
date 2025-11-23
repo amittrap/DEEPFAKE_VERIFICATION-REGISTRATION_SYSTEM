@@ -1,8 +1,37 @@
+# Virtual environment
 venv/
+env/
+ENV/
+
+# Python cache
 __pycache__/
-.env
 *.pyc
+*.pyo
+*.pyd
+
+# Environment / secrets
+.env
+.env.*
+*.env
+
+# Database and instance files
 *.db
-instance/
+*.sqlite
 *.sqlite3
+instance/
+
+# Images uploaded by users (avoid pushing to GitHub)
 static/images/
+
+# Model checkpoints (if any)
+*.h5
+*.hdf5
+*.keras
+
+# IDE / editor files
+.vscode/
+.idea/
+
+# System files
+.DS_Store
+Thumbs.db

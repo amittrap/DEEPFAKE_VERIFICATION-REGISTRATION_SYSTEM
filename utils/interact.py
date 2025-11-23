@@ -46,6 +46,8 @@ contract = w3.eth.contract(
 # --- Helper functions ---
 
 
+from web3.exceptions import TransactionNotFound
+
 def store_result(content_hash_bytes32: bytes, label: str, confidence: float):
     """
     Write result to blockchain.
@@ -58,12 +60,18 @@ def store_result(content_hash_bytes32: bytes, label: str, confidence: float):
         raise RuntimeError("PRIVATE_KEY not set in environment")
 
     account = w3.eth.account.from_key(PRIVATE_KEY)
-    nonce = w3.eth.get_transaction_count(account.address)
 
-    # Contract requires _confidence <= 10000
+    # ✅ Use 'pending' so we include in-flight txs and avoid nonce clashes
+    nonce = w3.eth.get_transaction_count(account.address, 'pending')
+
+    # Scale confidence to 0–10000 as contract expects
     conf_scaled = int(confidence * 10000)
     if conf_scaled > 10000:
         conf_scaled = 10000
+
+    # ✅ Take suggested gas price and bump it a bit to avoid 'underpriced' errors
+    base_gas_price = w3.eth.gas_price
+    gas_price = int(base_gas_price * 1.2)  # +20%
 
     tx = contract.functions.storeResult(
         content_hash_bytes32,
@@ -74,31 +82,46 @@ def store_result(content_hash_bytes32: bytes, label: str, confidence: float):
         "nonce": nonce,
         "chainId": CHAIN_ID,
         "gas": 300000,
-        "gasPrice": w3.eth.gas_price,
+        "gasPrice": gas_price,
     })
 
     signed_tx = w3.eth.account.sign_transaction(tx, private_key=PRIVATE_KEY)
     tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+
+    # Wait until mined
     receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
 
-    # You can also return tx_hash.hex() if you only care about hash
     return receipt
-
 
 def get_result(content_hash_bytes32: bytes) -> dict | None:
     """
     Read result from blockchain (no gas).
 
-    Returns dict with fields:
-      contentHash, label, confidence, timestamp, recorder
-    or None if not stored.
+    Solidity getResult(bytes32) returns:
+      (contentHash, label, confidence, timestamp, recorder)
+
+    We return:
+      {
+        "contentHash": bytes32,
+        "label": string,
+        "confidence": float (0–1),
+        "timestamp": int,
+        "recorder": address,
+      }
+
+    If no record is stored for that hash, we return None.
     """
     result = contract.functions.getResult(content_hash_bytes32).call()
-
     (content_hash, label, confidence, timestamp, recorder) = result
 
-    # Detect "empty" default struct
-    if content_hash == b"\x00" * 32 and label == "" and confidence == 0 and timestamp == 0:
+    # Detect "empty" default struct:
+    # when nothing stored, label == "" and other fields are 0 / zero address
+    if (
+        label == ""
+        and confidence == 0
+        and timestamp == 0
+        and recorder == "0x0000000000000000000000000000000000000000"
+    ):
         return None
 
     return {
