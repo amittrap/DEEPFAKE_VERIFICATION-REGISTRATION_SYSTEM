@@ -12,7 +12,7 @@ from globals import model
 
 frontend_bp = Blueprint('frontend', __name__)
 
-# Project root (this file is in routes/, so go two levels up if needed)
+# Project root (this file is in routes/, so go two levels up)
 BASE_DIR = Path(__file__).resolve().parent.parent
 TEMP_DIR = BASE_DIR / "temp"
 STATIC_IMAGES_DIR = BASE_DIR / "static" / "images"
@@ -294,6 +294,33 @@ def analyze_frontend():
 
     # 5️⃣ CASE 2: Hash NOT on-chain (or chain unavailable) → run ML
 
+    # 🔐 NEW: if model is not loaded, don't crash – show a warning instead
+    if model is None:
+        html += (
+            '<p style="color:orange;"><strong>⚠️ The deepfake detection model is '
+            'not available on the server right now, so ML-based verification '
+            'could not be performed.</strong></p>'
+        )
+        html += "<p>The image hash has been computed and can still be used for blockchain lookup in the future.</p>"
+
+        html += f"<p><strong>Image Hash:</strong> {hash_value}</p>"
+        html += f'<img src="/static/images/{new_filename}" width="200">'
+
+        # Optional DB logging with "unknown" label
+        log_image_if_new(
+            email=email,
+            age=age,
+            gender=gender,
+            occupation=occupation,
+            image_filename=new_filename,
+            image_hash=hash_value,
+            label="unknown",
+            confidence=0.0,
+        )
+
+        return html
+
+    # If model IS available, this logic is exactly the same as before
     label, confidence = predict_image(model, str(permanent_path))
     label_for_db = label.lower()
     conf_for_db = confidence
