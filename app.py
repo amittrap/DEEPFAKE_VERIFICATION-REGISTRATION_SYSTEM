@@ -44,6 +44,7 @@ def create_app():
     with app.app_context():
         from models.user import User
         from models.image_record import ImageRecord
+        from models.admin import Admin
         db.create_all()
 
     # ---- Attach Deepfake Detection Model (already loaded in globals.py) ----
