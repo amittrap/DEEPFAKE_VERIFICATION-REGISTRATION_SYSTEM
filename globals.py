@@ -1,36 +1,55 @@
 # globals.py
 import os
 import logging
-from tensorflow.keras.models import load_model
 
-# Simple logger
+# We only need TensorFlow Lite Interpreter
+try:
+    import tensorflow as tf
+except ImportError:
+    tf = None
+
 logger = logging.getLogger(__name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_DIR = os.path.join(BASE_DIR, "model")
-MODEL_PATH = os.path.join(MODEL_DIR, "Xception_deepfake_model.keras")
 
-# Optional: model download URL from env (we’ll use later)
+# Path to the quantized TFLite model
+TFLITE_PATH = os.path.join(MODEL_DIR, "xception_deepfake_quant.tflite")
+
+# Optional: URL where TFLITE model could be downloaded from (future use)
 MODEL_URL = os.getenv("MODEL_URL")
 
-model = None  # default
+# This variable will hold the loaded TFLite interpreter
+model = None
 
-def _load_model_from_disk():
-    """Try loading the Keras model from disk."""
+
+def _load_tflite_model():
+    """Load TFLite quantized model if available."""
     global model
-    if not os.path.exists(MODEL_PATH):
-        logger.warning(f"[globals] Model file not found at {MODEL_PATH}")
+
+    if tf is None:
+        logger.error("[globals] TensorFlow is not installed — TFLite model cannot load.")
+        model = None
+        return
+
+    if not os.path.exists(TFLITE_PATH):
+        logger.warning(f"[globals] TFLite model not found at {TFLITE_PATH}")
+        model = None
         return
 
     try:
-        logger.info(f"[globals] Loading model from {MODEL_PATH}...")
-        model = load_model(MODEL_PATH)
-        logger.info("[globals] Model loaded successfully.")
+        logger.info(f"[globals] Loading TFLite model from {TFLITE_PATH}...")
+        interpreter = tf.lite.Interpreter(model_path=TFLITE_PATH)
+        interpreter.allocate_tensors()
+        model = interpreter
+        logger.info("[globals] TFLite model loaded successfully.")
     except Exception as e:
-        logger.error(f"[globals] Failed to load model: {e}")
+        logger.error(f"[globals] Failed to load TFLite model: {e}")
         model = None
 
 
-# Try to load immediately (if file exists)
+# Ensure model folder exists
 os.makedirs(MODEL_DIR, exist_ok=True)
-_load_model_from_disk()
+
+# Load the TFLite model on startup
+_load_tflite_model()

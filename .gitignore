@@ -26,7 +26,7 @@ static/images/
 # Model checkpoints (if any)
 *.h5
 *.hdf5
-
+*.keras
 # IDE / editor files
 .vscode/
 .idea/
