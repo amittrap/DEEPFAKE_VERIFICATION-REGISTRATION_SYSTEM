@@ -10,12 +10,21 @@ def create_app():
     # ---- Core config (read from environment for deployment) ----
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-prod')
 
-    # DB: use env var if present (Railway / production), else fallback to local SQLite
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
-        'SQLALCHEMY_DATABASE_URI',
-        'sqlite:///users.db'  # local default
+    # ---- Database config ----
+    # Prefer Railway's Postgres DATABASE_URL, then optional SQLALCHEMY_DATABASE_URI,
+    # and finally fall back to local SQLite for development.
+    db_url = (
+        os.getenv("DATABASE_URL")  # Railway / Postgres
+        or os.getenv("SQLALCHEMY_DATABASE_URI")  # optional override
+        or "sqlite:///users.db"  # local default
     )
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+    # SQLAlchemy expects "postgresql://" but some providers give "postgres://"
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+    app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     # ---- Mail config (all from env, with safe defaults) ----
     app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
@@ -30,6 +39,12 @@ def create_app():
     # ---- Initialize extensions ----
     db.init_app(app)
     mail.init_app(app)
+
+    # ✅ Ensure tables exist in the configured database (Postgres on Railway)
+    with app.app_context():
+        from models.user import User
+        from models.image_record import ImageRecord
+        db.create_all()
 
     # ---- Attach Deepfake Detection Model (already loaded in globals.py) ----
     app.model = deepfake_model
